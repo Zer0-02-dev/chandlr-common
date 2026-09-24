@@ -35,12 +35,12 @@ import qualified Common.Component.BodyRender as Body
 
 
 op
-    :: (PostWithBody -> [ View model action ])
+    :: (PostWithBody -> [ View ctx props model action ])
     -> Props
     -> Model
     -> Post
     -> Backlinks
-    -> [ View model action ]
+    -> [ View ctx props model action ]
 op introExtras p m op_post backlinks =
     [ files_or_embed_view
     , div_
@@ -64,7 +64,7 @@ op introExtras p m op_post backlinks =
     ]
 
     where
-        files_or_embed_view :: View model a
+        files_or_embed_view :: View ctx props model a
         files_or_embed_view =
           case Post.embed op_post of
             Just _ -> embed op_post
@@ -80,7 +80,7 @@ op introExtras p m op_post backlinks =
         thread :: Thread
         thread = L.head $ Board.threads board
 
-        body :: [ PostWithBody ] -> [ View model a ]
+        body :: [ PostWithBody ] -> [ View ctx props model a ]
         body [] = []
         body (x:_) = Body.render site_ $ snd x
 
@@ -90,12 +90,12 @@ multi post = length (Post.attachments post) > 1
 
 
 reply
-  :: (PostWithBody -> [ View context action ])
+  :: (PostWithBody -> [ View context Props model action ])
   -> Props
   -> Model
   -> Backlinks
   -> PostWithBody
-  -> View context action
+  -> View context Props model action
 reply introExtras p m backlinks pwb@(post, parts) = div_
     [ class_ "postcontainer"
     , id_ $ toMisoString $ show $ Post.board_post_id post
@@ -125,7 +125,7 @@ reply introExtras p m backlinks pwb@(post, parts) = div_
     ]
 
     where
-        files_or_embed_view :: View model action
+        files_or_embed_view :: View ctx props model action
         files_or_embed_view =
           case Post.embed post of
             Just _ -> embed post

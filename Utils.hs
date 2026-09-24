@@ -74,9 +74,9 @@ pageTypeFromURI =
     fromRight Catalog . routeResult
 
     where
-        routeResult uri = route (Proxy :: Proxy (Route (View () () () PageType))) handlers (const uri) ()
+        routeResult uri = route (Proxy :: Proxy (Route (View () () () ()))) handlers (const uri) undefined
 
-        handlers :: RouteT (Route (View () () () PageType)) (() -> PageType)
+        handlers :: RouteT (Route (View () () () ())) (() -> PageType)
         handlers = hLatest :<|> hThread :<|> hBoard :<|> hSearch
 
         hLatest :: a -> h -> m -> PageType

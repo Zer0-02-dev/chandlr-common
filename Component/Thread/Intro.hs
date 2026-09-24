@@ -43,7 +43,7 @@ formatUTC time = toMisoString $
     formatTime defaultTimeLocale "%Y-%m-%d (%a) %T" time
 
 
-intro :: Site -> Board -> Thread -> Post -> Backlinks -> UTCTime -> View model a
+intro :: Site -> Board -> Thread -> Post -> Backlinks -> UTCTime -> View ctx props model a
 intro site board thread post backlinks current_time = span_
   [ class_ "intro" ]
   ( subject ++
@@ -79,13 +79,13 @@ intro site board thread post backlinks current_time = span_
     creation_time :: UTCTime
     creation_time = Post.creation_time post
 
-    subject :: [ View model a ]
+    subject :: [ View ctx props model a ]
     subject = map (mkSubject . toMisoString) $ toList $ Post.subject post
 
     name :: MisoString
     name = maybe "Anonymous" toMisoString $ Post.name post
 
-    mkSubject :: MisoString -> View model a
+    mkSubject :: MisoString -> View ctx props model a
     mkSubject s = span_
       [ class_ "subject" ]
       [ text s ]
@@ -93,7 +93,7 @@ intro site board thread post backlinks current_time = span_
     b_post_id :: MisoString
     b_post_id = toMisoString $ show $ Post.board_post_id post
 
-    mentions :: [ View model a ]
+    mentions :: [ View ctx props model a ]
     mentions =
         case Map.lookup (Post.board_post_id post) backlinks of
             Nothing -> []
@@ -103,7 +103,7 @@ intro site board thread post backlinks current_time = span_
                 (map mention xs)
                 : []
 
-    mention :: Post -> View model a
+    mention :: Post -> View ctx props model a
     mention p =
         a_
             [ href_ $ "#" <> bpid

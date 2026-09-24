@@ -25,7 +25,7 @@ import qualified Common.Network.PostType as Post
 import Common.Network.PostType (Post)
 import Common.Parsing.EmbedParser (extractVideoId)
 
-embed :: Post -> View model a
+embed :: Post -> View ctx props model a
 embed post = div_
     [ class_ "video-container" ]
     [ a_

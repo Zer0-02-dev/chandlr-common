@@ -16,6 +16,7 @@ import Miso
     , View
     , toMisoString
     , vfrag
+    , withProps
     )
 
 import qualified Miso as M
@@ -197,8 +198,8 @@ update Submit = do
 update = undefined
 #endif
 
-view :: context -> T.Props -> Model -> View context Action
-view _ props m = vfrag hide
+view :: Model -> View context T.Props model Action
+view m = vfrag hide
 
     where
         hide
@@ -221,7 +222,7 @@ view _ props m = vfrag hide
                     ]
 
 
-        statusMessage :: Model -> P.Post -> View model action
+        statusMessage :: Model -> P.Post -> View context props model action
         statusMessage Model { deleteRequestResult = Nothing } post =
             div_
                 [ class_ "warning-message" ]
@@ -289,8 +290,9 @@ view _ props m = vfrag hide
                 threads = filter (\x -> P.local_idx x == 1) posts
 
 
-        content :: T.Model -> View context Action
+        content :: T.Model -> View context T.Props model Action
         content threadModel@T.Model { T.post_bodies = (pwb@(post, _):_) } =
+            withProps $ \props ->
             div_ [ class_ "modal-dialog__content" ]
                 [ statusMessage m post
                 , div_ [ class_ "modal-dialog__post-preview" ]

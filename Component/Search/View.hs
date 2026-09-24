@@ -22,8 +22,8 @@ import Miso.Html
 
 import Common.Component.Search.SearchTypes
 
-view :: context -> props -> model -> View context Action
-view = const $ const $ const $ form_
+view :: model -> View context props model Action
+view = const $ form_
     [ class_ "search_form"
     , action_ "/search"
     , method_ "GET"

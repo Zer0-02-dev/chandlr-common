@@ -21,7 +21,7 @@ import qualified Common.Component.Modal as Modal
 import qualified Common.Network.SiteType as Site
 import qualified Common.Network.BoardType as Board
 
-navmenu :: Props -> Model -> View context Action
+navmenu :: Props -> Model -> View context Props Model Action
 navmenu _ Model { menuState = Closed } = vfrag []
 navmenu props m = div_ [ class_ "modal-dialog" ]
     [ Modal.view
@@ -36,7 +36,7 @@ navmenu props m = div_ [ class_ "modal-dialog" ]
             }
     ]
     where
-        content :: Props -> Model -> View context Action
+        content :: Props -> Model -> View context Props Model Action
         content _ Model { menuState = Closed } = vfrag []
         content p m_@Model { menuState = ChooseBoards } = div_
                 [ class_ "modal-dialog__content" ]
@@ -53,7 +53,7 @@ navmenu props m = div_ [ class_ "modal-dialog" ]
         title _ = ""
 
 
-allOrNoneSites :: [ View model Action ]
+allOrNoneSites :: [ View context props model Action ]
 allOrNoneSites =
     [ div_
         [ class_ "button"
@@ -65,14 +65,14 @@ allOrNoneSites =
         ] [ span_ [] [ "None" ] ]
     ]
 
-allOrNoneBoards :: Site.Site -> [ View model Action ]
+allOrNoneBoards :: Site.Site -> [ View context props model Action ]
 allOrNoneBoards s =
     [ div_ [ class_ "button", onClick $ AddFromSite s ] [ span_ [] [ "All" ] ]
     , div_ [ class_ "button", onClick $ RemoveFromSite s ] [ span_ [] [ "None" ] ]
     ]
 
 
-chooseBoards ::  Props -> Model -> View context Action
+chooseBoards ::  Props -> Model -> View context Props Model Action
 chooseBoards props model
     | currentSites model == emptyCurrentSites =
         button_
@@ -91,14 +91,14 @@ chooseBoards props model
                 All -> sitesAndBoards props
                 CurrentSites selectedSites -> Set.toList selectedSites
 
-        siteBoardsSection :: Model -> (Site.Site, [ Board.Board ]) -> View context Action
+        siteBoardsSection :: Model -> (Site.Site, [ Board.Board ]) -> View context props model Action
         siteBoardsSection m (s, bs) = vfrag
             [ div_ [ class_ "modal-dialog__inline-content" ]
                 (h2_ [] [ text $ Site.name s ] : allOrNoneBoards s)
             , div_ [ class_ "modal-dialog__grid-column-content" ] (map (pickBoard m) bs)
             ]
 
-        pickBoard :: Model -> Board.Board -> View context Action
+        pickBoard :: Model -> Board.Board -> View context props model Action
         pickBoard
             m b = div_
                 classes
@@ -122,19 +122,19 @@ chooseBoards props model
                 selected :: Bool
                 selected = Set.member b (selectedBoards m)
 
-                classes :: [ Attribute a ]
+                classes :: [ Attribute m a ]
                 classes
                     | selected = class_ "site-choice__selected" : boardChoiceClass
                     | otherwise = boardChoiceClass
 
-                boardChoiceClass :: [ Attribute a ]
+                boardChoiceClass :: [ Attribute m a ]
                 boardChoiceClass = [ class_ "site-choice", class_ "site-choice__board" ]
 
 
-chooseSites :: Props -> Model -> View context Action
+chooseSites :: Props -> Model -> View context Props Model Action
 chooseSites props model = vfrag $ map pickSite (sitesAndBoards props)
     where
-        pickSite :: Site.Site -> View context Action
+        pickSite :: Site.Site -> View context props model Action
         pickSite s =
             div_
                 classes
@@ -158,10 +158,10 @@ chooseSites props model = vfrag $ map pickSite (sitesAndBoards props)
                         All -> True
                         CurrentSites sitesSet -> Set.member s sitesSet
 
-                classes :: [ Attribute a ]
+                classes :: [ Attribute m a ]
                 classes
                     | selected = class_ "site-choice__selected" : siteChoiceClass
                     | otherwise = siteChoiceClass
 
-                siteChoiceClass :: [ Attribute a ]
+                siteChoiceClass :: [ Attribute m a ]
                 siteChoiceClass = [ class_ "site-choice" ]

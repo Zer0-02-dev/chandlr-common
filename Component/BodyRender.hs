@@ -48,10 +48,10 @@ import Common.Parsing.BodyParser (parsePostBody)
  - (is there an easy way to render a miso View?, that's what's missing
  - a f :: View a -> Text)
  -}
-render :: Site.Site -> [ PostPart ] -> [ View model a ]
+render :: Site.Site -> [ PostPart ] -> [ View ctx props model a ]
 render = map . renderPostPart
 
-renderPostPart :: Site.Site -> PostPart -> View model a
+renderPostPart :: Site.Site -> PostPart -> View ctx props model a
 renderPostPart _ (SimpleText txt) = text $ getRidOfCarriageReturn $ toMisoString txt
 renderPostPart _ (PostedUrl u) =
     a_
@@ -64,7 +64,7 @@ renderPostPart _ Skip = br_ []
 
 renderPostPart site (Quote parse_result) = elems parse_result
     where
-        elems :: Either UrlParseError ParsedURL -> View model a
+        elems :: Either UrlParseError ParsedURL -> View ctx props model a
         elems (Left err) =
             a_
                 []

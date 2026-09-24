@@ -19,6 +19,7 @@ import Miso
     , publish
     , hydrateModel
     , getProps
+    , withProps
     )
 
 import Miso.JSON (FromJSON, ToJSON)
@@ -252,8 +253,8 @@ initializeModel ctxRef = do
         Just boardIds -> setModelBoardSelection sitesAndBoards_ model boardIds
 
 
-view :: context -> Props -> Model -> View context Action
-view _ p m = vfrag
+view :: Model -> View context Props Model Action
+view m = withProps $ \p -> vfrag
     [ navmenu p m
     , navbar p m
     ]

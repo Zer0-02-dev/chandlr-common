@@ -29,7 +29,7 @@ data ThreadPath = ThreadPath
     }
 
 
-navbar :: Props -> Model -> View context Action
+navbar :: Props -> Model -> View context Props Model Action
 navbar p m =
     let
         mThreadPath = maybeThreadPath (currentUri p)
@@ -63,7 +63,7 @@ navbar p m =
 
 
 
-sitesCrumb :: MisoString -> View context Action
+sitesCrumb :: MisoString -> View context props model Action
 sitesCrumb label = div_
     [ class_ "breadcrumb breadcrumb--clickable"
     , onClick ClickSites
@@ -74,7 +74,7 @@ sitesCrumb label = div_
     ]
 
 
-boardsCrumb :: [ View context Action ] -> View context Action
+boardsCrumb :: [ View context props model Action ] -> View context props model Action
 boardsCrumb label = div_
     [ class_ "breadcrumb breadcrumb--clickable"
     , onClick ClickBoards
@@ -86,7 +86,7 @@ boardsCrumb label = div_
     ]
 
 
-maybeThreadCrumb :: Maybe ThreadPath -> [ View context Action ]
+maybeThreadCrumb :: Maybe ThreadPath -> [ View context props model Action ]
 maybeThreadCrumb Nothing = []
 maybeThreadCrumb (Just tp) =
     [ div_
@@ -97,7 +97,7 @@ maybeThreadCrumb (Just tp) =
     ]
 
 
-chevronForward :: View model action
+chevronForward :: View ctx props model action
 chevronForward = svg_
     [ class_ "breadcrumb--chevron-svg-forward"
     , textProp "width" "0"
@@ -109,7 +109,7 @@ chevronForward = svg_
     [ use_ [ href_ "#svg-chevron-right-forward" ] ]
 
 
-chevronAft :: View model action
+chevronAft :: View ctx props model action
 chevronAft = svg_
     [ class_ "breadcrumb--chevron-svg-aft"
     , textProp "width" "0"
@@ -121,7 +121,7 @@ chevronAft = svg_
     [ use_ [ href_ "#svg-chevron-right-aft" ] ]
 
 
-crumbDots :: View model action
+crumbDots :: View ctx props model action
 crumbDots = div_
     [ class_ "breadcrumb--dots" ]
     [ dot, dot, dot ]
@@ -178,7 +178,7 @@ maybeThreadPath :: URI -> Maybe ThreadPath
 maybeThreadPath = fromRight Nothing . routeResult
 
     where
-        routeResult uri = route (Proxy :: Proxy (Route (View () ()))) handlers (const uri) undefined
+        routeResult uri = route (Proxy :: Proxy (Route (View () () () ()))) handlers (const uri) undefined
 
         handlers = hLatest :<|> hThread :<|> hBoard :<|> hSearch
 
@@ -196,7 +196,7 @@ maybeThreadPath = fromRight Nothing . routeResult
         hSearch = const $ const $ const Nothing
 
 
-supportingSvgs :: View model action
+supportingSvgs :: View ctx props model action
 supportingSvgs = svg_
     [ CSS.style_ ["display" =: "none"]
     , aria_ "hidden" "true"

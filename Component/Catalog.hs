@@ -30,6 +30,7 @@ import Miso
     , mailParent
     , DOMRef
     , io
+    , withProps
     )
 
 import Miso.Html (div_)
@@ -118,13 +119,13 @@ initializeModel ctxRef = do
         pagesFromInitialData _ = Seq.empty
 
 
-view :: Eq context => context -> Props -> Model -> View context Action
-view _ props model = div_
+view :: Eq context => Model -> View context Props Model Action
+view model = div_
     [ id_ "Grid" ]
-    (foldMap ((: []) . pageView) (pages model))
+    (foldMap ((: []) . withProps . pageView) (pages model))
 
     where
-        pageView page = div_
+        pageView page props = div_
             [ class_ "grid-page"
             , onBeforeDestroyedWith $ RemovedPageInDom postId
             , onDestroyed $ OnPageAfterDestroy postId

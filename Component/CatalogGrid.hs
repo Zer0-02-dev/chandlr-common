@@ -34,6 +34,7 @@ import Miso
     , consoleLog
     , key_
     , vfrag
+    , withProps
     )
 import Miso.Html
     ( div_
@@ -84,8 +85,8 @@ app =
 
 
 -- Custom event handler with preventDefault set to True
-onClick_ :: a -> Attribute a
-onClick_ action = onWithOptions M.BUBBLE defaultOptions { _preventDefault = True } "click" emptyDecoder (const $ const action)
+onClick_ :: a -> Attribute m a
+onClick_ action = onWithOptions M.BUBBLE defaultOptions { _preventDefault = True } "click" emptyDecoder (const $ const $ const action)
 
 
 update :: Action -> Effect parent props Model Action
@@ -96,16 +97,12 @@ update (ThreadSelected post) = do
 
 
 view
-  :: (Foldable f)
-  => context
-  -> Props f
-  -> Model
-  -> View context Action
-view _ props _ = vfrag
+  :: (Foldable f) => Model -> View context (Props f) Model Action
+view _ = withProps $ \props -> vfrag
       (foldMap ((: []) . (gridItem props)) (display_items props))
 
 
-gridItem :: Props f -> CatalogPost -> View context Action
+gridItem :: Props f -> CatalogPost -> View context (Props f) model Action
 gridItem props post =
     div_
         [ class_ "thread grid-li grid-size-small"
@@ -135,10 +132,10 @@ gridItem props post =
         ]
 
   where
-    subject :: [ View model a ]
+    subject :: [ View ctx props model a ]
     subject = map (text . toMisoString) $ maybeToList $ CatalogPost.subject post
 
-    intro :: [ View model a ] -> [ View model a ]
+    intro :: [ View ctx props model a ] -> [ View ctx props model a ]
     intro [] = []
     intro x = (: []) $ p_
         [ class_ "intro" ]
@@ -147,7 +144,7 @@ gridItem props post =
             x
         ]
 
-    body :: [ View model a ]
+    body :: [ View ctx props model a ]
     -- body = map (rawHtml . toMisoString) $ maybeToList $ CatalogPost.body post
     body =
         let site = Site.fromCatalogPost post
@@ -191,7 +188,7 @@ gridItem props post =
       ]
 
 
-    dimension :: [ Attribute a ]
+    dimension :: [ Attribute m a ]
     dimension = maybe []
         ( \res ->
             [ data_ "width" $ toMisoString $ At.width res

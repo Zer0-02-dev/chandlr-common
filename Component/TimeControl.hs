@@ -72,8 +72,8 @@ data Message = Message
 timeControlTopic :: Topic Message
 timeControlTopic = topic "time-control"
 
-view :: context -> props -> Model -> View context Time
-view _ _ m =
+view :: Model -> View context props Model Time
+view m =
     div_
         [ class_ "time-control"
         ]

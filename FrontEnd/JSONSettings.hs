@@ -39,7 +39,7 @@ data JSONSettings = JSONSettings
 instance FromJSON JSONSettings
 
 
-asHtml :: JSONSettings -> [ View model action ]
+asHtml :: JSONSettings -> [ View ctx props model action ]
 asHtml settings =
     [ meta "postgrest-url" (toMisoString $ postgrest_url settings)
     , meta "postgrest-fetch-count" (toMisoString $ postgrest_fetch_count settings)

@@ -152,15 +152,13 @@ initializeModel ctxRef = do
 mainView
     :: Eq context
     => InitCtxRef
-    -> context
-    -> ()
     -> Model
-    -> View context Action
-mainView ctxRef _ _ model = mainView_
+    -> View context () Model Action
+mainView ctxRef model = mainView_
     where
         mainView_ = either (const page404) id $
             route
-                (Proxy :: Proxy (Route (View context Action)))
+                (Proxy :: Proxy (Route (View context props model Action)))
                 handlers
                 current_uri
                 model

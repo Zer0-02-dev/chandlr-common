@@ -29,7 +29,6 @@ import Miso.Html.Property
   , classList_
   )
 import qualified Data.List.NonEmpty as L
-import Data.Foldable (toList)
 import Miso.String (MisoString, append, toMisoString, take)
 import qualified Miso.String as Str
 
@@ -53,7 +52,7 @@ max_thumbnail_height = 255
 max_original_filename_display_length :: Int
 max_original_filename_display_length = 25
 
-files :: MisoString -> Site -> Post -> View model a
+files :: MisoString -> Site -> Post -> View ctx props model a
 files media_root site post = div_
   [ class_ "files" ]
   ( map (file media_root site multi) attachments )
@@ -63,7 +62,7 @@ files media_root site post = div_
 
     attachments = Post.attachments post
 
-file :: MisoString -> Site -> Bool -> Attachment -> View model a
+file :: MisoString -> Site -> Bool -> Attachment -> View ctx props model a
 file media_root site multifile a = div_
   [ classList_ [ ("file", True), ("multifile", multifile) ] ]
   [ p_
@@ -133,7 +132,7 @@ file media_root site multifile a = div_
     thumb_url :: MisoString
     thumb_url = img_url_path
       `append` "/thumbnail_" `append` toMisoString (Attachment.board_filename a)
-      `append` toMisoString  (maybe "" ((<>) ".") $ Attachment.thumb_extension a)
+      `append` toMisoString  (maybe "" ("." <>) $ Attachment.thumb_extension a)
 
     file_url :: MisoString
     file_url = img_url_path
@@ -152,17 +151,17 @@ file media_root site multifile a = div_
     board :: Board.Board
     board = L.head $ Site.boards site
 
-    size_style_attr :: [ Attribute a ]
-    size_style_attr = concatMap (mk_size_style_attr . thumb_dimensions) $ toList $ Attachment.resolution a
+    size_style_attr :: [ Attribute m a ]
+    size_style_attr = concatMap (mk_size_style_attr . thumb_dimensions) $ Attachment.resolution a
 
-    mk_size_style_attr :: Dimension -> [ Attribute a ]
+    mk_size_style_attr :: Dimension -> [ Attribute m a ]
     mk_size_style_attr Dimension {..} =
         [ data_ "width" (toPx width)
         , data_ "height" (toPx height)
         ]
 
     toPx :: Int -> MisoString
-    toPx i = (toMisoString $ show i) `append` "px"
+    toPx i = toMisoString (show i) `append` "px"
 
     thumb_dimensions :: Dimension -> Dimension
     thumb_dimensions Dimension {..}

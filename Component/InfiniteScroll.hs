@@ -22,6 +22,7 @@ import Miso
     , checkMail
     , consoleError
     , modify
+    , withProps
     )
 
 import Miso.Html.Property (class_)
@@ -68,8 +69,8 @@ app innerComponent lbl = (component initialModel update (view innerComponent))
         handleMail = checkMail ChildMessage OnErrorMessage
 
 
-view :: (Eq context, Eq m, Eq props) => Component context props m a -> context -> props -> Model -> View context Action
-view innerComponent _ props = const $ vfrag
+view :: (Eq context, Eq m, Eq props) => Component context props m a -> Model -> View context props Model Action
+view innerComponent _ = withProps $ \props -> vfrag
   [ div_
       [ class_ "sentinel sentinel-top"
       , onCreatedWith $ RegisterSentinel Top
@@ -88,21 +89,23 @@ update (RegisterSentinel pos domRef) = do
     io_ $
         consoleLog $ "InfiniteScroll " <> lbl <> " - " <> toMisoString (show pos) <> " Sentinel Registered"
 
-    startSub (lbl <> "-" <> toMisoString (show pos)) $ \sink -> do
-        callback <- asyncCallback1 $ \entries -> do
-            entry <- entries !! 0
-            isIntersecting <- entry ! "isIntersecting" >>= fromJSVal
-            case isIntersecting of
-                Just True -> sink $ ReachedTarget pos
-                _ -> return ()
+    let sink_ sink _ = do
+            callback <- asyncCallback1 $ \entries -> do
+                entry <- entries !! 0
+                isIntersecting <- entry ! "isIntersecting" >>= fromJSVal
+                case isIntersecting of
+                    Just True -> sink $ ReachedTarget pos
+                    _ -> return ()
 
-        options <- create
-        setField options "rootMargin" ("750px" :: MisoString)
-        setField options "threshold"  (0 :: Double)
+            options <- create
+            setField options "rootMargin" ("750px" :: MisoString)
+            setField options "threshold"  (0 :: Double)
 
-        iObsC <- jsg "IntersectionObserver"
-        iObs <- new iObsC (callback, options)
-        void $ iObs # "observe" $ [ domRef ]
+            iObsC <- jsg "IntersectionObserver"
+            iObs <- new iObsC (callback, options)
+            void $ iObs # "observe" $ [ domRef ]
+
+    startSub (lbl <> "-" <> toMisoString (show pos)) sink_
 
 update (ReachedTarget pos) = do
     io_ $ consoleLog $ "InfiniteScroll REACHED " <> toMisoString (show pos)

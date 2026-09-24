@@ -29,6 +29,7 @@ import Miso
   , publish
   , get
   , mailParent
+  , withProps
   )
 import Miso.Html
   ( div_
@@ -139,8 +140,11 @@ update (OnDeleteBtn pwb) = do
     io_ $ publish DIP.deleteIllegalPostInTopic $ DIP.InMessage model { post_bodies = [ pwb ] }
 
 
-view :: context -> Props -> Model -> View context Action
-view _ props m =
+view :: Model -> View context Props Model Action
+view = withProps . view_
+
+view_ :: Model -> Props -> View context Props Model Action
+view_ m props =
   div_
     []
     [ h1_ [] [ text title ]
@@ -155,7 +159,7 @@ view _ props m =
         backlinks :: Backlinks
         backlinks = collectBacklinks (post_bodies m)
 
-        op_post :: [ PostWithBody ] -> [ View model Action ]
+        op_post :: [ PostWithBody ] -> [ View context Props model Action ]
         op_post [] = [ h2_ [] [ "There's nothing here" ] ]
         op_post ((p, _):_) = op (deleteBtn_ props) props m p backlinks
 
@@ -168,7 +172,7 @@ view _ props m =
 deleteBtn_
     :: Props
     -> PostWithBody
-    -> [ View context Action ]
+    -> [ View context Props model Action ]
 deleteBtn_ props p
   | admin props = [ deleteBtn (OnDeleteBtn p) ]
   | otherwise = []

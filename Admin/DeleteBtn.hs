@@ -13,7 +13,7 @@ import Miso.Html.Event
     ( onClick
     )
 
-deleteBtn :: action -> View model action
+deleteBtn :: action -> View context props model action
 deleteBtn a = span_
     [ class_ "post-illegal-delete-btn"
     , onClick a

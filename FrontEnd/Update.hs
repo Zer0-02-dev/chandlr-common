@@ -392,7 +392,7 @@ initialActionFromRoute model uri = fromRight NoAction routing_result
     where
         routing_result =
             route
-                (Proxy :: Proxy (Route (View Model Action)))
+                (Proxy :: Proxy (Route (View context props Model Action)))
                 handlers
                 (const uri)
                 model

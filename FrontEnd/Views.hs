@@ -51,10 +51,10 @@ import qualified Common.Component.NavigationBar.Model as Nav
 import qualified Common.Component.InfiniteScroll as Inf
 import Common.Cookies (CookieJar)
 
-timeControl :: Eq context => InitCtxRef -> View context Action
+timeControl :: Eq context => InitCtxRef -> View context props model Action
 timeControl ctxRef = vfrag [ mount_ $ TC.app ctxRef ]
 
-grid :: Eq context => InitCtxRef -> Catalog.Props -> View context action
+grid :: Eq context => InitCtxRef -> Catalog.Props -> View context props model action
 grid ctxRef props =
     div_
         [ class_ "theme-catalog" ]
@@ -65,11 +65,11 @@ grid ctxRef props =
         ]
 
 
-search :: Eq context => View context Action
+search :: Eq context => View context props model Action
 search = div_ [ key_ ("search" :: MisoString) ] [ mount_ Search.app ]
 
 
-pageWrapperWithDefaults :: Eq context => InitCtxRef -> Model -> View context Action -> View context Action
+pageWrapperWithDefaults :: Eq context => InitCtxRef -> Model -> View context props model Action -> View context props model Action
 pageWrapperWithDefaults ctxRef m inner_content =
     vfrag
         [ mountWithProps clientProps Client.app
@@ -85,7 +85,7 @@ pageWrapperWithDefaults ctxRef m inner_content =
         clientProps = Client.Props (pg_api_root m)
 
 
-commonCatalogView :: Eq context => InitCtxRef -> Model -> View context Action
+commonCatalogView :: Eq context => InitCtxRef -> Model -> View context props model Action
 commonCatalogView ctxRef m = pageWrapperWithDefaults ctxRef m $ vfrag $
     [ div_
         [ class_ "page_heading" ]
@@ -106,7 +106,7 @@ catalogView
     -> Maybe String
     -> Maybe CookieJar
     -> Model
-    -> View context Action
+    -> View context props model Action
 catalogView ctxRef _ _ = commonCatalogView ctxRef
 
 boardView
@@ -116,7 +116,7 @@ boardView
     -> a
     -> Maybe CookieJar
     -> Model
-    -> View context Action
+    -> View context props model Action
 boardView ctxRef _ _ _ m = commonCatalogView ctxRef m
 
 searchView
@@ -125,7 +125,7 @@ searchView
     -> Maybe String
     -> Maybe CookieJar
     -> Model
-    -> View context Action
+    -> View context props model Action
 searchView ctxRef _ _ m = pageWrapperWithDefaults ctxRef m $ vfrag
     [ div_
         [ class_ "page_heading" ]
@@ -160,7 +160,7 @@ threadView
     -> BoardThreadId
     -> Maybe CookieJar
     -> Model
-    -> View context Action
+    -> View context props model Action
 threadView ctxRef _site_name _board_pathpart _board_thread_id _cookies m =
     pageWrapperWithDefaults ctxRef m $ vfrag
         [ mountWithProps
@@ -169,7 +169,7 @@ threadView ctxRef _site_name _board_pathpart _board_thread_id _cookies m =
         ]
 
 
-page404 :: View context Action
+page404 :: View context props model Action
 page404 = h1_ [] [ text "404 Not Found" ]
 
 

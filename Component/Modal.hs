@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ExplicitForAll #-}
 
 module Common.Component.Modal where
 
@@ -20,15 +21,17 @@ import Miso.Html.Event
     ( onClick
     )
 
-data Model context a = Model
-    { cancel :: a
-    , submit :: a
-    , content :: View context a
+data Model context props model action = Model
+    { cancel :: action
+    , submit :: action
+    , content :: View context props model action
     , title :: MisoString
     , action :: MisoString
     }
 
-view :: Model context a -> View context a
+view
+    :: Model context props model action
+    -> View context props model action
 view (Model {..}) =
     div_
         [ class_ "modal-dialog__outermost" ]
