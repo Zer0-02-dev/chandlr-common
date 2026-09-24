@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+-- {-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE AllowAmbiguousTypes #-}
 -- {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Common.Utils where
@@ -16,7 +18,7 @@ import Miso
     )
 import Miso.JSON
 import Miso.String (toMisoString, fromMisoString, last)
-import Servant.Miso.Router (route)
+import Servant.Miso.Router (route, RouteT)
 import Data.Proxy (Proxy (..))
 import Servant.API hiding (URI)
 import Data.Either (fromRight)
@@ -72,8 +74,9 @@ pageTypeFromURI =
     fromRight Catalog . routeResult
 
     where
-        routeResult uri = route (Proxy :: Proxy (Route (View () ()))) handlers (const uri) undefined
+        routeResult uri = route (Proxy :: Proxy (Route (View () () () PageType))) handlers (const uri) ()
 
+        handlers :: RouteT (Route (View () () () PageType)) (() -> PageType)
         handlers = hLatest :<|> hThread :<|> hBoard :<|> hSearch
 
         hLatest :: a -> h -> m -> PageType
