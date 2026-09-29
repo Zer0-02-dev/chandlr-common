@@ -12,6 +12,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Map.Strict as Map
 import Servant.API
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Integer.Conversion (textToInteger)
 import Common.BitField (intsFromBitField)
 
@@ -40,4 +41,5 @@ type family WithCookie api where
 
 getBoardIdsFromCookie :: CookieJar -> Maybe (Set Int)
 getBoardIdsFromCookie (CookieJar cookies) =
-    (intsFromBitField . textToInteger) <$> (Map.lookup "b" cookies)
+    ((intsFromBitField . textToInteger) <$> (Map.lookup "b" cookies)) >>=
+        \s -> if Set.null s then Nothing else Just s
