@@ -3,6 +3,7 @@
 
 module Common.Component.Catalog where
 
+import Prelude hiding ((!!))
 import Miso
     ( Component (mount, onPropsChanged, mailbox, hydrateModel)
     , component
@@ -18,7 +19,6 @@ import Miso
     , consoleLog
     , consoleLog'
     , toMisoString
-    , fromMisoString
     , getProps
     , consoleError
     , get
@@ -28,14 +28,13 @@ import Miso
     , checkMail
     , put
     , mailParent
-    , DOMRef
     , io
     , withProps
     )
 
 import Miso.Html (div_)
 import Miso.Html.Property (id_, class_)
-import Miso.Event (onBeforeDestroyedWith, onDestroyed)
+import Miso.Event (onDestroyed)
 import Miso.JSON (Value)
 import Miso.DSL
 import Data.Time.Clock (UTCTime)
@@ -52,6 +51,7 @@ import qualified Common.Network.ClientTypes as Client
 import qualified Common.Utils as Utils
 import qualified Common.Network.BoardType as Board
 import Common.Component.InfiniteScroll.Action hiding (Action (..))
+import Utils (getElementHeight)
 
 pattern FetchCatalogBottom :: Client.ReturnTopicName
 pattern FetchCatalogBottom = "fetch-catalog-bottom"
@@ -61,7 +61,7 @@ type CatalogPages = Seq (Seq C.CatalogPost)
 data Model = Model
     { pages :: CatalogPages
     , scrollTime :: Maybe (UTCTime, Integer)
-    , trimmedPageHeight :: Int
+    , trimmedPageHeight :: Double
     } deriving Eq
 
 initialModel :: Model
@@ -86,9 +86,9 @@ data Action
     | PropsChanged
     | NextPage
     | OnScrollMessage InfScrollOutMsg
-    | RemovedPageInDom Integer DOMRef -- post_id, DOMRef
-    | SaveDestroyedHeight Int
-    | OnPageAfterDestroy Integer -- post_id
+    | SaveDestroyedHeight Double
+    | OnPageDestroyed Integer -- post_id
+    | SendAllClear
 
 app :: Eq context => InitCtxRef -> Component context Props Model Action
 app ctxRef = (component initialModel update view)
@@ -127,8 +127,7 @@ view model = div_
     where
         pageView page props = div_
             [ class_ "grid-page"
-            , onBeforeDestroyedWith $ RemovedPageInDom postId
-            , onDestroyed $ OnPageAfterDestroy postId
+            , onDestroyed $ OnPageDestroyed postId
             ]
             [ mountWithProps (mkGridProps page props) Grid.app ]
 
@@ -216,7 +215,11 @@ update (OnScrollMessage (Grow Bottom)) = do
         scrollKey :: CatalogPages -> Maybe (UTCTime, Integer)
         scrollKey = fmap (\post -> (C.bump_time post, C.thread_id post)) . getLast
 
-update (OnScrollMessage (Trim Top)) =
+update (OnScrollMessage (Trim Top)) = do
+    io $ do
+       firstElemHeight <- getElementHeight ".grid-page"
+       return $ SaveDestroyedHeight firstElemHeight
+
     modify $ \m -> m { pages = trimFirstPage (pages m) }
 
 update (OnScrollMessage _) =
@@ -225,46 +228,25 @@ update (OnScrollMessage _) =
 update (OnErrorMessage msg) =
     io_ $ consoleError ("Catalog Component OnErrorMessage decode failure: " <> toMisoString msg)
 
-update (RemovedPageInDom postId domRef) = do
-    -- if we need to find out it's a page we're removing going down, the
-    -- post_id would be the first post_id in CatalogPages, if we're going up maybe we don't need to do anything
-    --  - OH WAIT, no! RemovedPageInDom needs a new field 'direction' that comes
-    --    from view, and view uses the post_id to determine if it's first or last
-    --  - the model is modified before update RemovedPageInDom is run (this block)
-    --    so the first element is already gone
-    --      - okay well we still have the last one, and the ones in the middle, yeah but that's not correct, technically if we have lots of middle pages thats a lot of comparisons for no reason
-    --  - pages in the middle don't get destroyed
-    
-    io $ do
-        consoleLog $ "PAGE TRIMMED " <> toMisoString (show postId)
-        consoleLog' domRef
-        pageElem <- toJSVal domRef
-        height <- pageElem ! "offsetHeight" >>= fromJSValUnchecked
-        consoleLog' domRef
-        consoleLog $ "Page height: " <> height
-        return $ SaveDestroyedHeight $ fromMisoString height
-
-
-    {-
-    io_ $ do
-        consoleLog $ "PAGE CREATED " <> toMisoString (show postId)
-        callback <- asyncCallback1 $ const $ do
-            pageElem <- toJSVal domRef
-            height <- pageElem ! "offsetHeight" >>= fromJSValUnchecked
-            consoleLog' domRef
-            consoleLog $ "Page height: " <> height
-
-        void $ jsg1 "requestAnimationFrame" callback
-    -}
-
 update (SaveDestroyedHeight h) = modify $ \m -> m { trimmedPageHeight = h }
 
-update (OnPageAfterDestroy postId) = do
+update (OnPageDestroyed postId) = do
     model <- get
 
-    io_ $ do
-        consoleLog $ "OnPageAfterDestroy " <> toMisoString (show postId)
+    io $ do
+        consoleLog $ "OnPageDestroyed " <> toMisoString (show postId)
         consoleLog $ "affect scrollTop by " <> toMisoString (show $ trimmedPageHeight model)
+        scrollingElem <- (jsg "document") ! "scrollingElement"
+        y <- scrollingElem ! "scrollTop" >>= fromJSValUnchecked
+        setField scrollingElem "scrollTop" (y - (trimmedPageHeight model))
+        return SendAllClear
+
+update SendAllClear = do
+    io_ $
+        consoleLog "SendAllClear"
+
+    mailParent AllClear
+
 
 
 -- | Safely gets the last element of a Seq

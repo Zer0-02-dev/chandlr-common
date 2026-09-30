@@ -27,4 +27,5 @@ data InfScrollInMsg
     = Loaded SentinelPosition
     | Exhausted SentinelPosition
     | Reset
+    | AllClear
     deriving (Generic, ToJSON, FromJSON)

@@ -40,7 +40,7 @@ import Miso.DSL
     , create
     )
 import Miso.JSON (Value)
-import Control.Monad (void)
+import Control.Monad (void, unless)
 
 import Common.Component.InfiniteScroll.Model
 import Common.Component.InfiniteScroll.Action
@@ -63,6 +63,7 @@ app innerComponent lbl = (component initialModel update (view innerComponent))
         initialModel = Model
             { label = lbl
             , loadedPages = 1
+            , ignoreSentinels = False
             }
 
         handleMail :: Value -> Maybe Action
@@ -98,7 +99,7 @@ update (RegisterSentinel pos domRef) = do
                     _ -> return ()
 
             options <- create
-            setField options "rootMargin" ("750px" :: MisoString)
+            setField options "rootMargin" ("1100px" :: MisoString)
             setField options "threshold"  (0 :: Double)
 
             iObsC <- jsg "IntersectionObserver"
@@ -108,20 +109,30 @@ update (RegisterSentinel pos domRef) = do
     startSub (lbl <> "-" <> toMisoString (show pos)) sink_
 
 update (ReachedTarget pos) = do
-    io_ $ consoleLog $ "InfiniteScroll REACHED " <> toMisoString (show pos)
-    mailChildren $ Grow pos
+    model <- get
+    io_ $ consoleLog $ "InfiniteScroll REACHED " <> toMisoString (show pos) <> " sentinels "
+        <> if ignoreSentinels model then "locked" else "unlocked"
+
+    unless (ignoreSentinels model) $
+        mailChildren $ Grow pos
 
 update (ChildMessage (Loaded Bottom)) = do
     model <- get
 
     if loadedPages model == maxLoadedPages
     then do
+        io_ $ consoleLog "ChildMessage (Loaded Bottom): Trim and lock sentinels"
         mailChildren $ Trim $ opposite Bottom
+        modify $ \m -> m { ignoreSentinels = True }
     else
         modify $ \m -> m { loadedPages = loadedPages m + 1 }
 
 update (ChildMessage Reset) =
     modify $ \m -> m { loadedPages = 1 }
+
+update (ChildMessage AllClear) = do
+    io_ $ consoleLog "ChildMessage AllClear: unlock sentinels"
+    modify $ \m -> m { ignoreSentinels = False }
 
 update (ChildMessage _) = io_ $ consoleError "Not Implemented "
 
