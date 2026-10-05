@@ -10,6 +10,7 @@ import qualified Common.Network.ClientTypes as Client
 import qualified Common.Component.CatalogGrid.GridTypes as Grid
 import Common.Network.BoardType (Board)
 import Common.FrontEnd.Types (InitCtxRef, AppInitCtx, Time)
+import qualified Common.Component.Catalog as Ctlg
 
 data Action
     = GetThread Client.GetThreadArgs
@@ -30,6 +31,7 @@ data Action
     | InitAllSitesAndBoards
     | GoBackToCatalog
     | ReloadGridWithBoards [ Board ]
+    | CatalogPaginationMsg Ctlg.CatalogPaginationMessage
     deriving Eq
 
 

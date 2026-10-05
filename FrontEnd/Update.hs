@@ -52,6 +52,7 @@ import qualified Common.Component.TimeControl as TC
 import qualified Common.FrontEnd.JSONSettings as Settings
 import Common.Parsing.FlexibleJsonResponseParser as Flx
 import qualified Common.Component.NavigationBar as NavB
+import qualified Common.Component.Catalog as Ctlg
 
 -- import JSFFI.Profile (sectionEnd, toJSString, displayTotals)
 
@@ -74,6 +75,7 @@ mainUpdate (Initialize ctxRef) = do
     subscribe Search.searchOutTopic SearchResults OnErrorMessage
     subscribe TC.timeControlTopic (GoToTime False . timeFromTimeMessage) OnErrorMessage
     subscribe NavB.navigationBarTopic actionFromNavBarMessage OnErrorMessage
+    subscribe Ctlg.catalogPaginationTopic CatalogPaginationMsg OnErrorMessage
 
     model <- get
 
@@ -279,7 +281,7 @@ mainUpdate (GoToTime r time) = do
                         }
                 T.Then t ->
                     (current_uri m)
-                        { uriQueryString = Map.fromList [ ("t", Just $ toMisoString $ show t) ]
+                        { uriQueryString = Map.singleton "t" $ Just $ toMisoString $ show t
                         }
 
 mainUpdate (GetThread Client.GetThreadArgs {..}) = do
@@ -382,6 +384,63 @@ mainUpdate (ReloadGridWithBoards boards) = do
     modify $ \m -> m { selected_boards = Just boards }
     model <- get
     issue $ GoToTime True (current_time model)
+
+mainUpdate
+    (CatalogPaginationMsg Ctlg.PaginationMsg
+        { Ctlg.selectedTime = T.Now _
+        , Ctlg.scrollKey = Nothing
+        }
+    ) = do
+        model <- get
+        modify $ \m -> m { between_pages = True }
+        io_ $ replaceURI (current_uri model)
+            { uriQueryString = Map.empty
+            , uriFragment = ""
+            }
+
+mainUpdate
+    (CatalogPaginationMsg Ctlg.PaginationMsg
+        { Ctlg.selectedTime = T.Then selectedTime
+        , Ctlg.scrollKey = Nothing
+        }
+    ) = do
+        model <- get
+        modify $ \m -> m { between_pages = True }
+        io_ $ replaceURI (current_uri model)
+            { uriQueryString =
+                Map.singleton "t" $ Just $ toMisoString $ show selectedTime
+            , uriFragment = ""
+            }
+
+mainUpdate
+    (CatalogPaginationMsg Ctlg.PaginationMsg
+        { Ctlg.selectedTime = selectedTime
+        , Ctlg.scrollKey = Just (scrollTime, threadId)
+        }
+    ) = do
+        model <- get
+        let query = Map.fromList
+                [ ("s", Just $ toMisoString $ show scrollTime)
+                ]
+        modify $ \m -> m { between_pages = True }
+        io_ $ replaceURI (current_uri model)
+            { uriQueryString = query
+            , uriFragment = ""
+            }
+
+-- TODO:
+--   - send Exhausted to InfiniteScroll when Catalog reached end ✓
+--      - right now it says Not Implemented, and if you scroll up and back down
+--        it tries to go to the top?
+--
+--   - set the t = parameter when we scroll
+--          - or do we make a new parameter if it's 'now', like n=?
+--              - let's leave it as t =, because we still know in our model that it's 'now'
+--
+--   - set the thread_id param (for pagination)
+--   - check if it works when refreshing the page
+--          - what about without hydration?
+--   - scrolling up should fetch previous page, change url, etc
 
 (</>) :: MisoString -> MisoString -> MisoString
 (</>) a b = a <> "/" <> b

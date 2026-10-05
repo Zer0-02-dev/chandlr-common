@@ -9,7 +9,7 @@ import GHC.Generics (Generic)
 import Miso.JSON (ToJSON, FromJSON)
 
 data SentinelPosition = Top | Bottom
-    deriving (Show, Generic, ToJSON, FromJSON)
+    deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON)
 
 data Action
     = RegisterSentinel SentinelPosition DOMRef

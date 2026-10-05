@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Common.Component.Catalog where
 
@@ -17,7 +19,6 @@ import Miso
     , modify
     , io_
     , consoleLog
-    , consoleLog'
     , toMisoString
     , getProps
     , consoleError
@@ -35,7 +36,6 @@ import Miso
 import Miso.Html (div_)
 import Miso.Html.Property (id_, class_)
 import Miso.Event (onDestroyed)
-import Miso.JSON (Value)
 import Miso.DSL
 import Data.Time.Clock (UTCTime)
 import qualified Common.Component.CatalogGrid as Grid
@@ -44,6 +44,8 @@ import Data.Sequence (Seq, (|>), ViewL (..), ViewR (..), viewr, viewl)
 import Control.Monad (when, unless)
 import Data.IORef (readIORef)
 import Data.Maybe (fromJust)
+import Miso.JSON (FromJSON, ToJSON, Value)
+import GHC.Generics
 
 import qualified Common.Network.CatalogPostType as C
 import Common.FrontEnd.Types
@@ -89,6 +91,11 @@ data Action
     | SaveDestroyedHeight Double
     | OnPageDestroyed Integer -- post_id
     | SendAllClear
+
+data CatalogPaginationMessage = PaginationMsg
+      { selectedTime :: Time
+      , scrollKey    :: Maybe (UTCTime, Integer)
+      } deriving (Eq, Generic, ToJSON, FromJSON)
 
 app :: Eq context => InitCtxRef -> Component context Props Model Action
 app ctxRef = (component initialModel update view)
@@ -164,17 +171,20 @@ update NextPage = do
     model <- get
     io_ $ do
         consoleLog "Catalog - PropsChanged, asking client for latest catalog"
+        let time = currentTime props
+            sk = scrollTime model
         publish Client.clientInTopic
             ( FetchCatalogBottom
             , Client.FetchLatest $ Client.FetchCatalogArgs
-                { Client.selected_time = (utcTimeFromTime $ currentTime props)
+                { Client.selected_time = utcTimeFromTime time
                 , Client.board_ids =
-                    (map Board.board_id <$> selectedBoards props)
-                , Client.scroll_time = fst <$> scrollTime model
-                , Client.scroll_thread_id = snd <$> scrollTime model
+                    map Board.board_id <$> selectedBoards props
+                , Client.scroll_time = fst <$> sk
+                , Client.scroll_thread_id = snd <$> sk
                 , Client.thread_count = fetchCount props
                 }
             )
+        publish catalogPaginationTopic $ PaginationMsg time sk
 
     where
         utcTimeFromTime :: Time -> UTCTime
@@ -207,13 +217,13 @@ update (OnScrollMessage (Grow Bottom)) = do
     model <- get
 
     unless (Seq.null (pages model)) $ do
-        modify $ \m -> m { scrollTime = scrollKey (pages m) }
+        modify $ \m -> m { scrollTime = mkScrollKey (pages m) }
         io_ $ consoleLog "Catalog Scroll Message Grow Bottom"
         issue NextPage
 
     where
-        scrollKey :: CatalogPages -> Maybe (UTCTime, Integer)
-        scrollKey = fmap (\post -> (C.bump_time post, C.thread_id post)) . getLast
+        mkScrollKey :: CatalogPages -> Maybe (UTCTime, Integer)
+        mkScrollKey = fmap (\post -> (C.bump_time post, C.thread_id post)) . getLast
 
 update (OnScrollMessage (Trim Top)) = do
     io $ do
@@ -276,3 +286,6 @@ trimLastPage ps =
     case viewr ps of
         EmptyR  -> ps
         xs :> _ -> xs
+
+catalogPaginationTopic :: Topic CatalogPaginationMessage
+catalogPaginationTopic = topic "catalog-pagination"

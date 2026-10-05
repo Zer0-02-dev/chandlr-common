@@ -69,7 +69,7 @@ instance FromJSON MessagesFromChildren where
     parseJSON _ = fail "Expected JSON String for MessagesFromChildren deserialization"
 
 data Time = Now UTCTime | Then UTCTime
-    deriving (Eq, Show)
+    deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 
 timeFromInitialPayload :: AppInitCtx -> Time

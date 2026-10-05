@@ -39,8 +39,9 @@ import Miso.DSL
     , setField
     , create
     )
-import Miso.JSON (Value)
+import Miso.JSON (Value, encode)
 import Control.Monad (void, unless)
+import qualified Data.Set as Set
 
 import Common.Component.InfiniteScroll.Model
 import Common.Component.InfiniteScroll.Action
@@ -64,6 +65,7 @@ app innerComponent lbl = (component initialModel update (view innerComponent))
             { label = lbl
             , loadedPages = 1
             , ignoreSentinels = False
+            , exhausted = Set.empty
             }
 
         handleMail :: Value -> Maybe Action
@@ -113,7 +115,7 @@ update (ReachedTarget pos) = do
     io_ $ consoleLog $ "InfiniteScroll REACHED " <> toMisoString (show pos) <> " sentinels "
         <> if ignoreSentinels model then "locked" else "unlocked"
 
-    unless (ignoreSentinels model) $
+    unless (ignoreSentinels model || Set.member pos (exhausted model)) $
         mailChildren $ Grow pos
 
 update (ChildMessage (Loaded Bottom)) = do
@@ -134,7 +136,10 @@ update (ChildMessage AllClear) = do
     io_ $ consoleLog "ChildMessage AllClear: unlock sentinels"
     modify $ \m -> m { ignoreSentinels = False }
 
-update (ChildMessage _) = io_ $ consoleError "Not Implemented "
+update (ChildMessage (Exhausted pos)) =
+    modify $ \m -> m { exhausted = Set.insert pos (exhausted m) }
+
+update (ChildMessage m) = io_ $ consoleError $ "Not Implemented " <> encode m
 
 update (OnErrorMessage msg) =
     io_ $ consoleError ("InfiniteScroll Component OnErrorMessage decode failure: " <> toMisoString msg)
